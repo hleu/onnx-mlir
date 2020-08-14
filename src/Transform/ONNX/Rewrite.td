@@ -64,6 +64,13 @@ def HasNonZeroInArrayAttr: Constraint<CPred<"hasNonZeroInArrayAttr($_self)">,
 class IsNotStringAttrOfValue<string val>:
   Constraint<CPred<"$0.cast<StringAttr>().getValue() != \"" # val # "\"">>;
 
+// Check that a input is int or float type.
+def HasIntFloatType : Constraint<CPred<"(($_self).getType().dyn_cast<ShapedType>().getElementType().isIntOrFloat())">>;
+
+// Create a DenseElementsAttr from an ArrayAttr.
+def createArrayAttrOneHotEncoder:
+  NativeCodeCall<"createArrayAttrOneHotEncoder($_builder, $0, $1)">;
+
 //===----------------------------------------------------------------------===//
 // Rewrite:
 // %0 = onnx.ConvOp(%D : tensor<DShape>, %K)
@@ -98,6 +105,19 @@ def ConvOpPaddingPattern: Pat<
      (createArrayAttrOfZerosFrom $pads),
      $strides),
   [(HasNonZeroInArrayAttr:$pads), (IsNotStringAttrOfValue<"VALID"> $auto_pad)]
+>;
+
+def OneHotEncoderPattern1: Pat<
+  (ONNXOneHotEncoderOp:$res $x, $cats_int64s, $cats_strings, $zeros),
+  (ONNXConstantOp (GetNullAttr), 
+    (createArrayAttrOneHotEncoder $x, $cats_int64s, $zeros)),
+  [(HasIntFloatType:$x)]
+>;
+
+def OneHotEncoderPattern2: Pat<
+  (ONNXOneHotEncoderOp:$res $x, $cats_int64s, $cats_strings, $zeros),
+  (ONNXConstantOp (GetNullAttr), 
+    (createArrayAttrOneHotEncoder $x, $cats_strings, $zeros))
 >;
 
 #endif // ONNX_REWRITE

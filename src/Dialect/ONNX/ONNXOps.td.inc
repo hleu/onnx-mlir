@@ -6020,6 +6020,7 @@ def ONNXNormalizerOp:ONNX_Op<"Normalizer",
 
 def ONNXOneHotEncoderOp:ONNX_Op<"OneHotEncoder",
   [NoSideEffect, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let hasCanonicalizer = 1;
   let summary = "ONNX OneHotEncoder operation";
   let description = [{
   "Replace each input element with an array of ones and zeros, where a single"

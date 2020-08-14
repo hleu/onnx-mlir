@@ -82,6 +82,40 @@ DenseElementsAttr insertZerosForNonPaddedDims(
   return rewriter.getI64TensorAttr(llvm::makeArrayRef(pads));
 }
 
+
+DenseElementsAttr createArrayAttrOneHotEncoder(
+    PatternRewriter &rewriter, Value origValue, ArrayAttr attrs, IntegerAttr zeros) {
+  Type elementType = origValue.getType().cast<TensorType>().getElementType();
+  int outDim = attrs.getValue().size();
+
+  // SmallVector<float, 2> res(outDim, 0);
+  // for (int i = 0; i < outDim; ++i) {
+  //   wrapper[i] = origAttrs.getValue()[i].cast<FloatAttr>().getValueAsDouble();
+  // }  
+  SmallVector<float, 1> res(outDim, 0);
+  int i = 0;
+  for (mlir::detail::InLineOpResult::use_iterator it=origValue.use_begin(); it != origValue.use_end(); ++it){
+    if ((*it).getOperand(i).get() == attrs.getValue()){
+      std::cout <<"in"<<std::endl;
+    }
+    i+=1;
+  }
+  // for (auto val : origValue) {
+  //   SmallVector<float, 1> row(outDim, 0);
+  //   for (int i = 0; i < outDim; ++i) {
+  //     if (val.cast<elementType>() == attrs.getValue()[i].cast<FloatAttr>().getValueAsDouble()) {
+  //       row[i] = 1;
+  //       break;
+  //     }
+  //   }
+  //   res.emplace_back(row);
+  // }
+
+  return DenseElementsAttr::get(
+      RankedTensorType::get(res.size(), rewriter.getF32Type()),
+      llvm::makeArrayRef(res));
+}
+
 /// Include the patterns defined in the Declarative Rewrite framework.
 #include "src/Transform/ONNX/ONNXRewrite.inc"
 
@@ -91,4 +125,10 @@ DenseElementsAttr insertZerosForNonPaddedDims(
 void ONNXConvOp::getCanonicalizationPatterns(
     OwningRewritePatternList &results, MLIRContext *context) {
   results.insert<ConvOpPaddingPattern>(context);
+}
+
+/// on the ONNXConvOp.
+void ONNXOneHotEncoderOp::getCanonicalizationPatterns(
+    OwningRewritePatternList &results, MLIRContext *context) {
+  results.insert<OneHotEncoderPattern>(context);
 }
